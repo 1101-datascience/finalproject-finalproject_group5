@@ -1,0 +1,98 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(keras)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+library(lubridate)
+library(tensorflow)
+```
+```{r}
+set.seed(7)
+dataframe <- read.csv(
+    './international-airline-passengers.csv')
+ 
+dataframe$Month <- paste0(dataframe$Month,'-01') %>%
+    ymd()
+max_value <- max(dataframe$passengers)
+min_value <- min(dataframe$passengers)
+spread <- max_value - min_value
+ 
+dataset <- (dataframe$passengers - min_value) / spread
+ 
+create_dataset <- function(dataset,
+                           look_back = 1)
+{
+    l <- length(dataset)
+    dataX <- array(dim = c(l - look_back, look_back))
+ 
+    for (i in 1:ncol(dataX))
+    {
+        dataX[, i] <- dataset[i:(l - look_back + i - 1)]
+    }
+ 
+    dataY <- array(
+        data = dataset[(look_back + 1):l],
+        dim = c(l - look_back, 1))
+ 
+    return(
+        list(
+            dataX = dataX,
+            dataY = dataY))
+}
+ 
+train_size <- as.integer(length(dataset) * 0.67)
+test_size <- length(dataset) - train_size
+ 
+train <- dataset[1:train_size]
+test <- dataset[(train_size + 1):length(dataset)]
+ 
+cat(length(train), length(test))
+```
+```{r}
+look_back <- 1
+trainXY <- create_dataset(train, look_back)
+testXY <-  create_dataset(test, look_back)
+ 
+dim_train <- dim(trainXY$dataX)
+dim_test <- dim(testXY$dataX)
+ 
+# reshape input to be [samples, time steps, features]
+dim(trainXY$dataX) <- c(dim_train[1], 1, dim_train[2])
+dim(testXY$dataX) <- c(dim_test[1], 1, dim_test[2])
+```
+```{r}
+model <- keras_model_sequential()
+ 
+model %>%
+    layer_lstm(
+        units = 4,
+        input_shape = c(1, look_back)) %>%
+    layer_dense(
+        units = 1) %>%
+    compile(
+        loss = 'mean_squared_error',
+        optimizer = 'adam') %>%
+    fit(trainXY$dataX,
+        trainXY$dataY,
+        epochs = 100,
+        batch_size = 1,
+        verbose = 2)
+```
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

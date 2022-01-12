@@ -45,6 +45,7 @@ Rscript code/final.R --input data/data.csv --output results/pred_nor.csv
 
 * Which metric do you use? 
   * R-squared, MAE, MSE
+  * performance.csv
 * The return we get from our strategy is about 5%.
 
 ## packages

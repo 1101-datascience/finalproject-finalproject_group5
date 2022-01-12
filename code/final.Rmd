@@ -1,0 +1,178 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(ggplot2)
+data <- read.csv("./data.csv")
+print(data)
+ggplot(data,aes(x=start_at,y=close))+geom_line()
+#keep <- c("open","high","low","close") 
+#data <- data[keep]
+head(data)
+
+```
+
+
+```{r}
+######創建對應之y_label
+shift <- function(x, n) {  
+ c(x[-(seq(n))], rep(NA, n)) 
+} 
+data$shifted <- shift(data$close, 1) 
+print(data) 
+data <- na.omit(data) 
+write.csv(data, "data_1.csv")
+
+
+######標準化
+
+normalize <- function(x) {
+    return((x- min(x)) /(max(x)-min(x)))
+}
+data["close"] <- as.data.frame(apply(data["close"],2, normalize))
+data["high"] <- as.data.frame(apply(data["high"],2, normalize))
+data["open"] <- as.data.frame(apply(data["open"],2, normalize))
+data["low"] <- as.data.frame(apply(data["low"],2, normalize))
+data["shifted"] <- as.data.frame(apply(data["shifted"],2, normalize))
+
+print(data)
+ggplot(data,aes(x=start_at,y=shifted))+geom_line()
+
+```
+
+
+```{r}
+#loading the library 
+library(h2o) 
+h2o.init(nthreads = -1, max_mem_size = "8g") 
+```
+
+
+
+
+```{r}
+y <- "shifted" #variable we want to forecast 
+x <- c("open","high","low","close")
+l <- round(nrow(data)*0.8)
+train <- data[c(1:l),]
+test <- data[c(l+1:nrow(data)),]
+train <- as.h2o(train)
+test <- as.h2o(test)
+qq <- as.data.frame(test)
+ggplot(qq,aes(x=start_at,y=close))+geom_line()
+print(train
+      )
+```
+
+
+
+```{r}
+
+automodel <- h2o.automl(x, y, train, test,sort_metric = "RMSE",nfolds = 4) 
+```
+
+```{r}
+lb=h2o.get_leaderboard(object = automodel, extra_columns = "ALL")
+print(lb)
+predictions <- h2o.predict(automodel@leader, test)
+```
+
+
+```{r}
+h2o.saveModel(automodel@leader,path="./GBM_nor_4f_nshuf")
+
+```
+```{r}
+###denormalize
+deno <- function(x,max,min) {
+    return(x*(max-min)+min)
+}
+deno_truth <- read.csv("./data.csv")
+deno_truth$shifted <- shift(deno_truth$close, 1) 
+deno_truth <- na.omit(deno_truth)
+print(max(deno_truth["close"]))
+predictions <- deno(predictions,max(deno_truth["shifted"]),min(deno_truth["shifted"]))
+print(predictions)
+test["shifted"] <- deno(test["shifted"],max(deno_truth["shifted"]),min(deno_truth["shifted"]))
+test["close"] <- deno(test["close"],max(deno_truth["close"]),min(deno_truth["close"]))
+print(test["shifted"])
+print(nrow(test))
+
+#h2o.exportFile(predictions,path="./pred_nor.csv",force=TRUE)
+
+
+```
+```{r}
+
+cal <- function(pred,truth){
+  len <- nrow(pred)
+  mae <- 0
+  mse <- 0
+  for(i in c(1:len)){
+    mse <- mse+(pred[i]-truth[i])^2
+    mae <- mae+abs(pred[i]-truth[i])
+  }
+
+  mse <- mse/len
+  mae <- mae/len
+  print(mae)
+  print(mse)
+  x <- mean(truth)
+  rrdif <- 0
+  rrt <- 0
+  for(i in c(1:len)){
+    rrdif <- rrdif+(pred[i]-truth[i])**2
+    rrt <- rrt+(truth[i]-x)**2
+  }
+  y <- 1-rrdif/rrt
+  print(y)
+  
+  return(c(mae,mse,y))
+}
+```
+```{r}
+s <- cal(array(predictions),array(test["shifted"]))
+#print(test["shifted"])
+#print(predictions[1])
+print(cat("mae:",s[1]))
+print(cat("mse:",s[2]))
+print(cat("R2:",s[3]))
+```
+
+
+```{r}
+print(nrow(test))
+h2o.exportFile(predictions,path="./pred_nor_GBM.csv",force=TRUE)
+h2o.exportFile(test,path="./truth_GBM.csv",force=TRUE)
+```
+```{r}
+model_a=h2o.loadModel("./GBM_nor_4f/GBM_4_AutoML_1_20220108_130208")
+pred <- h2o.predict(model_a, test)
+deno <- function(x,max,min) {
+    return(x*(max-min)+min)
+}
+deno_truth <- read.csv("./data.csv")
+deno_truth$shifted <- shift(deno_truth$close, 1) 
+deno_truth <- na.omit(deno_truth)
+print(max(deno_truth["close"]))
+predictions <- deno(predictions,max(deno_truth["shifted"]),min(deno_truth["shifted"]))
+print(predictions)
+test["shifted"] <- deno(test["shifted"],max(deno_truth["shifted"]),min(deno_truth["shifted"]))
+s <- cal(array(pred),array(test["shifted"]))
+```
+```{r}
+qq <- as.data.frame(test)
+qq["pppp"] <- array(predictions)
+ggplot(qq,aes(x=start_at,y=shifted))+geom_line()+ggplot(qq,aes(x=start_at,y=pppp))+geom_line()
+kk <- as.data.frame(predictions)
+
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

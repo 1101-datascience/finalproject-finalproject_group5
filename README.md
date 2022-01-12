@@ -13,7 +13,7 @@ predict BTC's price
 ### Demo 
 You should provide an example commend to reproduce your result
 ```R
-Rscript code/final.R --input data/data.csv --output results/pred.csv
+Rscript code/final.R --input data/data.csv --output results/pred_nor.csv
 ```
 
 ## Folder organization and its related information

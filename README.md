@@ -1,13 +1,16 @@
 # [GroupID] Title of your final project
 
 ### Groups
-* name, student ID1
-* name, student ID2
-* name, student ID3
+* 106703042 楊喻丞
+* 108753132 黃翊唐
+* 109258003 張竣凱
+* 109258042 楊士逸
+* 109258040 曾偉恩
+
 * ...
 
 ### Goal
-A breif introduction about your project, i.e., what is your goal?
+predict BTC's price
 
 ### Demo 
 You should provide an example commend to reproduce your result

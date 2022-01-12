@@ -19,7 +19,7 @@ Rscript code/final.R --input data/data.csv --output results/pred.csv
 ## Folder organization and its related information
 
 ### docs
-* 1101_datascience_FP_<group5>.pptx
+* 1101_datascience_FP_group5.pptx
 
 ### data
 

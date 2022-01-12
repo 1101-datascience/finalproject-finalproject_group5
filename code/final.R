@@ -2,7 +2,7 @@ library(ggplot2)
 
 args = commandArgs(trailingOnly=TRUE)
 if (length(args)==0) {
-  stop("USAGE: Rscript hw1_exam.R input", call.=FALSE)
+  stop("USAGE: Rscript final.R input", call.=FALSE)
 } else if (length(args)==1) {
   i_f <- args[1] 
 }
